@@ -19,8 +19,8 @@ class PiFragment : Fragment() {
     private var counter = 0
     private var running = true
 
-    private var viewModelJob = Job()
-    private val ioScope = CoroutineScope(Dispatchers.Main + viewModelJob)
+    private var job = Job()
+    private val ioScope = CoroutineScope(Dispatchers.Main + job)
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -34,10 +34,7 @@ class PiFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         ioScope.launch {
-            piTimer().collect {
-                Log.d("pi", it)
-                binding?.piTextView?.text = it
-            }
+            countPi()
         }
     }
 
@@ -50,10 +47,7 @@ class PiFragment : Fragment() {
         Log.d("fragment_click", "start")
         running = true
         ioScope.launch {
-            piTimer().collect {
-                Log.d("pi", it)
-                binding?.piTextView?.text = it
-            }
+            countPi()
         }
     }
 
@@ -67,6 +61,18 @@ class PiFragment : Fragment() {
         running = false
         counter = 0
         binding?.piTextView?.text = ""
+    }
+
+    private suspend fun countPi(){
+        withContext(Dispatchers.IO){
+            piTimer().collect {
+                Log.d("pi", it)
+                withContext(Dispatchers.Main){
+                    binding?.piTextView?.text = it
+                }
+            }
+        }
+
     }
 
     private fun piTimer(): Flow<String> = flow {
